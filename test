@@ -1,0 +1,37 @@
+{
+  "squad": [
+    {
+      "armament": false,
+      "energy": 0.0,
+      "name": "F",
+      "ordinate": 5,
+      "abscissa": 4
+    }
+  ],
+  "prisoners": [
+    {
+      "cond": "LYING",
+      "energy": 5.692787073037617,
+      "name": "Незнайка",
+      "ordinate": 4,
+      "abscissa": 4
+    }
+  ],
+  "theDead": [],
+  "crane": {
+    "cond": "ThereIs",
+    "water": "Yes",
+    "name": "Red",
+    "ordinate": 1,
+    "abscissa": 1
+  },
+  "stove": {
+    "fire": "Yes",
+    "name": "Black",
+    "ordinate": 2,
+    "abscissa": 3
+  },
+  "name": "без имени",
+  "ordinate": 3,
+  "abscissa": 1
+}

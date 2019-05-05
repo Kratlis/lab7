@@ -1,0 +1,24 @@
+[
+  {
+    "name": "NoName",
+    "ordinate": 0,
+    "abscissa": 9
+  },
+  {
+    "name": "NoName",
+    "ordinate": 0,
+    "abscissa": 0
+  },
+  {
+    "ordinate": 0,
+    "abscissa": 7
+  },
+  {
+    "ordinate": 2,
+    "abscissa": 0
+  },
+  {
+    "ordinate": 3,
+    "abscissa": 9
+  }
+]
