@@ -4,17 +4,18 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonSyntaxException;
 import com.google.gson.reflect.TypeToken;
-import story.*;
+import story.Jail;
+import story.JailComparator;
+
 
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.lang.reflect.Type;
 import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.Scanner;
-import java.util.Stack;
+import java.util.*;
 import java.util.concurrent.ConcurrentLinkedDeque;
+import java.util.stream.Collectors;
 
 public class ConcurrentCollectionManager extends CollectionManager {
     private ConcurrentLinkedDeque<Jail> jailConcurrentStack;
@@ -52,6 +53,9 @@ public class ConcurrentCollectionManager extends CollectionManager {
         if (jailForAdding != null) {
             if (!jailConcurrentStack.contains(jailForAdding)) {
                 jailConcurrentStack.add(jailForAdding);
+                if (jailConcurrentStack.size()>1) {
+                    sort();
+                }
             } else {
                 return "Элемент " + jailForAdding + " уже содержится в коллекции.";
             }
@@ -64,12 +68,14 @@ public class ConcurrentCollectionManager extends CollectionManager {
             return "Элемент задан неверно.";
         }
     }
-
+    
+    
+    
     @Override
     public String info() {
-        return "Коллекция имеет тип \"ConcurrentArrayDeque\" и содержит объекты класса \"story.Jail\".\n" +
+        return "\nКоллекция имеет тип \"ConcurrentArrayDeque\" и содержит объекты класса \"story.Jail\".\n" +
                 "Дата инициализации: " + initDate +
-                "\nКолличество элементов в коллекции - " + jailConcurrentStack.size() + ".\n";
+                "\nКолличество элементов в коллекции - " + jailConcurrentStack.size() + ".";
     }
 
     @Override
@@ -88,11 +94,16 @@ public class ConcurrentCollectionManager extends CollectionManager {
      * @see ConcurrentLinkedDeque
      */
     public String doImport(Stack<Jail> jailsForPushing) {
-        if (!jailsForPushing.isEmpty()) {
-            jailConcurrentStack.addAll(jailsForPushing);
-            return "Элементы добавлены.";
+        if (jailsForPushing != null) {
+            if (!jailsForPushing.isEmpty()) {
+                jailConcurrentStack.addAll(jailsForPushing);
+                sort();
+                return "Элементы добавлены.";
+            }
+            return "Ничего не добавлено: импортируемая коллекция пуста.";
+        } else{
+            return "Элемент задан неверно.";
         }
-        return "Ничего не добавлено: импортируемая коллекция пуста.";
     }
 
     public String insert(String place, Jail jailForInserting) {
@@ -136,10 +147,13 @@ public class ConcurrentCollectionManager extends CollectionManager {
     @Override
     public void load(String fileName) throws FileNotFoundException, NullPointerException {
         jailConcurrentStack = createConcurrentStack(new FileManager(new File(fileName)).readFile());
+        jailConcurrentStack.stream().filter(t -> t.getName()==null).forEach(t -> t.setName("NoName"));
+        sort();
     }
 
     public void load() throws FileNotFoundException, NullPointerException {
         jailConcurrentStack = createConcurrentStack(fileWorker.readFile());
+        sort();
     }
 
     @Override
@@ -193,19 +207,10 @@ public class ConcurrentCollectionManager extends CollectionManager {
             return false;
         }
     }
-
-    public static void main(String[] args) throws FileNotFoundException {
-//        new FileManager(new File("ts")).writeToFile(new GsonBuilder().setPrettyPrinting().create().
-//                toJson(ConcurrentCollectionManager.createConcurrentStack(new FileManager(new File("Collection")).readFile())));
-//        Jail newJail = new Jail(1, 3, new Crane(1, 1, "Red"), new Stove("Black", 3, 2, WithFire.Yes));
-//        newJail.addPoliceman(new Policeman("F", 4, 5));
-//        newJail.addShorty(new Shorty("Незнайка", story.Condition.LYING, 4, 4));
-////        System.out.println(new GsonBuilder().setPrettyPrinting().create().toJson(newJail));
-//        ConcurrentLinkedDeque<Jail> concurrentLinkedDeque = new ConcurrentLinkedDeque();
-//        concurrentLinkedDeque.add(new Jail(1, 3, new Crane() ,new Stove("KKK", 1, 1, WithFire.Yes)));
-//        concurrentLinkedDeque.add(new Jail(3, 5, null,null));
-//        concurrentLinkedDeque.add(newJail);
-        ConcurrentLinkedDeque<Jail> concurrentLinkedDeque = createConcurrentStack(new FileManager(new File("Collection")).readFile());
-        System.out.println(new GsonBuilder().setPrettyPrinting().create().toJson(concurrentLinkedDeque));
+    
+    private void sort() {
+        jailConcurrentStack = jailConcurrentStack.stream().sorted(new JailComparator()).
+                collect(Collectors.toCollection(ConcurrentLinkedDeque::new));
     }
+
 }

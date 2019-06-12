@@ -251,6 +251,9 @@ public class CollectionManager {
         if (newJail.getName() == null){
             newJail.setName("NoName");
         }
+        if (newJail.getInitDate() == null){
+            newJail.setInitDate(new Date());
+        }
         return newJail;
     }
 

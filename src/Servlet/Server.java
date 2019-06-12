@@ -36,11 +36,10 @@ public class Server {
     static LinkedList<ServerOperator> getServerList() {
         return serverList;
     }
+
     public static void main(String[] args) throws IOException {
 
-        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-            System.out.println("Завершаем работу.");
-        }));
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> System.out.println("Завершаем работу.")));
 
         Server server;
         if (args.length > 1){
@@ -65,14 +64,16 @@ public class Server {
             server.serverSocket.bind(new InetSocketAddress(port));
             System.out.println("Порт: "+server.serverSocket.getLocalPort());
         } catch (IOException e) {
-            System.out.println("Что-то пошло не так.");
+            System.out.println("Не получилось создать ServerSocket.");
             System.exit(-1);
         }
 
         System.out.println("Сервер запущен");
         while (!server.serverSocket.isClosed()) {
             Socket client = server.waitConnection();
-            if (client == null) break;
+            if (client == null) {
+                break;
+            }
             ServerOperator serverOperator = new ServerOperator(client, server.manager);
             serverList.add(serverOperator);
             serverOperator.start();
@@ -93,6 +94,7 @@ public class Server {
             System.out.println("Сервер выключается");
             try {
                 serverSocket.close();
+//                serverList.forEach(ServerOperator::interrupt);
                 serverList.forEach(ServerOperator::interrupt);
             } catch (IOException ex) {
                 System.out.println("Не удалось закрыть сетевой канал.");
@@ -108,17 +110,4 @@ public class Server {
         }
     }
 
-//    private void exit(){
-//        boolean needExit = false;
-//        while (!needExit){
-//            String scannerCommand = new Scanner(System.in).next();
-//            if (scannerCommand.equals("show")){
-//                serverList.forEach(System.out::println);
-//            }
-//            needExit = scannerCommand.equals("exit");
-//        }
-//        try {
-//            this.serverSocket.close();
-//        } catch (IOException ignored) {}
-//    }
 }

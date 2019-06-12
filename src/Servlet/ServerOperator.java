@@ -4,34 +4,34 @@ import story.Jail;
 import work_with_collection.CommandReaderAndExecutor;
 import work_with_collection.ConcurrentCollectionManager;
 
+import javax.management.remote.rmi.RMIConnectionImpl;
 import java.io.*;
 import java.net.Socket;
+import java.net.SocketException;
 import java.util.LinkedList;
 import java.util.Stack;
+import java.util.Timer;
+import java.util.TimerTask;
 
 class ServerOperator extends Thread {
     private int id;
     private static int all = 0;
     private Socket socket; // сокет, через который сервер общается с клиентом,
-    private BufferedReader in; // поток чтения из сокета
-    private BufferedWriter out; // поток записи в сокет
     private ObjectInputStream reader;
     private ObjectOutputStream writer;
-    private DataInputStream dataInputStream;
-    private DataOutputStream dataOutputStream;
+    private InputStream inputStream;
+    private OutputStream outputStream;
     private ConcurrentCollectionManager manager;
-
+    boolean g = true;
+    
     ServerOperator(Socket socket, ConcurrentCollectionManager concurrentCollectionManager){
         this.id = ++all;
         this.socket = socket;
         manager = concurrentCollectionManager;
         try {
-            in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-            out = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
-            writer = new ObjectOutputStream(socket.getOutputStream());
-            reader = new ObjectInputStream(socket.getInputStream());
-            dataOutputStream = new DataOutputStream(socket.getOutputStream());
-            dataInputStream=new DataInputStream(socket.getInputStream());
+            outputStream = socket.getOutputStream();
+            inputStream = socket.getInputStream();
+            writer = new ObjectOutputStream(outputStream);
             System.out.println("Клиент " + id + " подключился к серверу");
         } catch (IOException e) {
             System.out.println("Поток ввода не получен");
@@ -44,22 +44,26 @@ class ServerOperator extends Thread {
                 System.out.println("Это конец.");
             }
         }));
+        
     }
 
     @Override
     public void run() {
         while (!socket.isClosed()){
             System.out.println("Socket is open...");
+            if (!g) {
+                continue;
+            }
             try {
-                sendMessage("Введите команду");
-                System.out.println("Sended message");
+                sendMessage("\nВведите команду");
                 String message = readMessage();
-                System.out.println(message);
                 String command = message.split(" ", 2)[0];
+                System.out.println("Получено: "+message);
                 switch (command) {
                     case "add":
-                            sendMessage(manager.add(readJail()));
+                        sendMessage(manager.add(readJail()));
                         break;
+                        
                     case "help":
                         sendMessage(CommandReaderAndExecutor.getInfoForHelp());
                         break;
@@ -111,6 +115,7 @@ class ServerOperator extends Thread {
                 }
             } catch (IOException e) {
                 try {
+//                    System.out.println(e.getMessage());
                     sendMessage("Клиент не передал команду.");
                 } catch (IOException e1) {
                     System.out.println("Клиент "+id+" отключился.");
@@ -119,43 +124,74 @@ class ServerOperator extends Thread {
                 finishOperator();
                 break;
             } catch (ClassNotFoundException e) {
-                System.out.println("Class in ServerOperator.add");
+                System.out.println("Не удалось получить объект");
             }
         }
     }
 
-    private String readMessage() throws IOException {
-        return dataInputStream.readUTF();
+    private String readMessage() throws IOException, ClassNotFoundException {
+        reader = new ObjectInputStream(inputStream);
+        String msg =(String)reader.readObject();
+        return msg;
     }
     private Jail readJail() throws IOException, ClassNotFoundException {
-        return (Jail)reader.readObject();
+        reader = new ObjectInputStream(inputStream);
+        Jail jail = (Jail)reader.readObject();
+        System.out.println("Jail: "+jail);
+        return jail;
     }
     private Stack<Jail> readStack() throws IOException, ClassNotFoundException {
-            return (Stack<Jail>) reader.readObject();
+        reader = new ObjectInputStream(inputStream);
+        return (Stack<Jail>) reader.readObject();
     }
 
     private void sendMessage(String msg) throws IOException {
-        try {
-            dataOutputStream.writeUTF(msg);
-        } catch (IOException e) {
-            System.out.println("Установить связь с клиентом "+id+" не удалось.");
-            throw new IOException();
-        }
+        //            if (!readMessage().equals("Ready")){
+//                return;
+//            }
+        g = false;
+        Timer timer = new Timer();
+        timer.schedule(new TimerTask() {
+            @Override
+            public void run() {
+                System.out.println("Отправляем: " + msg);
+                try {
+                    writer.writeObject("!"+msg);
+                    writer.flush();
+
+                } catch (IOException e) {
+                    System.out.println("Соединение прервано.");
+                    try {
+//                    System.out.println(e.getMessage());
+                        sendMessage("Клиент не передал команду.");
+                    } catch (IOException e1) {
+                        System.out.println("Клиент "+id+" отключился.");
+                        --all;
+                    }
+                    finishOperator();
+                }
+                g = true;
+            }
+        },20);
+//            System.out.println("writing: " + msg);
+//            writer.writeObject("!"+msg);
+//            writer.flush();
+//            Thread.currentThread().sleep(100);
+//            outputStream.write(msg.getBytes());
     }
 
     private void finishOperator() {
         try {
             if(!socket.isClosed()) {
-                dataInputStream.close();
-                dataOutputStream.close();
                 reader.close();
                 writer.close();
-                out.close();
-                in.close();
                 socket.close();
                 LinkedList<ServerOperator> serverList = Server.getServerList();
+                for (ServerOperator serverOperator: serverList){
+                    serverOperator.finishOperator();
+                }
             }
-        } catch (IOException ignored) {}
+        } catch (IOException | NullPointerException ignored) {}
     }
 
 }
