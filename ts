@@ -1,24 +1,28 @@
 [
   {
-    "squad": [],
-    "prisoners": [],
-    "theDead": [],
-    "crane": {
-      "cond": "ThereNot",
-      "water": "Yes",
-      "name": "Crane2",
-      "ordinate": 0,
-      "abscissa": 18
-    },
-    "stove": {
-      "fire": "Yes",
-      "name": "Stove2",
-      "ordinate": 1,
-      "abscissa": 1
-    },
-    "name": "Room2",
+    "name": "NoName",
     "ordinate": 3,
-    "abscissa": 1
+    "abscissa": 9
+  },
+  {
+    "name": "NoName",
+    "ordinate": 2,
+    "abscissa": 0
+  },
+  {
+    "name": "NoName",
+    "ordinate": 0,
+    "abscissa": 7
+  },
+  {
+    "name": "NoName",
+    "ordinate": 0,
+    "abscissa": 0
+  },
+  {
+    "name": "NoName",
+    "ordinate": 0,
+    "abscissa": 9
   },
   {
     "squad": [
@@ -54,6 +58,27 @@
       "abscissa": 3
     },
     "name": "Room1",
+    "ordinate": 3,
+    "abscissa": 1
+  },
+  {
+    "squad": [],
+    "prisoners": [],
+    "theDead": [],
+    "crane": {
+      "cond": "ThereNot",
+      "water": "Yes",
+      "name": "Crane2",
+      "ordinate": 0,
+      "abscissa": 18
+    },
+    "stove": {
+      "fire": "Yes",
+      "name": "Stove2",
+      "ordinate": 1,
+      "abscissa": 1
+    },
+    "name": "Room2",
     "ordinate": 3,
     "abscissa": 1
   }

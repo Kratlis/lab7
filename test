@@ -1,4 +1,4 @@
-{
+[{
   "squad": [
     {
       "armament": false,
@@ -34,4 +34,4 @@
   "name": "без имени",
   "ordinate": 3,
   "abscissa": 1
-}
+}]

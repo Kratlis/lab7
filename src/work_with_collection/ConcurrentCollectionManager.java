@@ -1,5 +1,8 @@
 package work_with_collection;
 
+import ServerPart.CollectionReader;
+import ServerPart.CollectionWriter;
+import ServerPart.DataBaseConnection;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonSyntaxException;
@@ -7,18 +10,22 @@ import com.google.gson.reflect.TypeToken;
 import story.Jail;
 import story.JailComparator;
 
-
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.lang.reflect.Type;
+import java.sql.SQLException;
 import java.text.SimpleDateFormat;
-import java.util.*;
+import java.util.Date;
+import java.util.Scanner;
+import java.util.Stack;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.stream.Collectors;
 
 public class ConcurrentCollectionManager extends CollectionManager {
     private ConcurrentLinkedDeque<Jail> jailConcurrentStack;
+    DataBaseConnection connectionDB;
+    CollectionWriter collectionWriter;
 
     /**
      *Конструктор в входными параметрами.
@@ -48,7 +55,37 @@ public class ConcurrentCollectionManager extends CollectionManager {
         jailConcurrentStack = new ConcurrentLinkedDeque<>();
         initDate = new Date();
     }
-
+    public void setConnectionDB(DataBaseConnection connectionDB) {
+        this.connectionDB = connectionDB;
+        collectionWriter = new CollectionWriter(connectionDB.getConnection());
+        System.out.println(collectionWriter+" created");
+    }
+    
+    
+    public String add(Jail jailForAdding, String login){
+        if (jailForAdding != null) {
+            if (!jailConcurrentStack.contains(jailForAdding)) {
+                jailConcurrentStack.add(jailForAdding);
+                try {
+                    collectionWriter.writeJail(jailForAdding, login);
+                } catch (SQLException e) {
+                    return "Connection with DB is broken.";
+                }
+                if (jailConcurrentStack.size()>1) {
+                    sort();
+                }
+            } else {
+                return "Элемент " + jailForAdding + " уже содержится в коллекции.";
+            }
+            if (!(jailConcurrentStack.isEmpty())) {
+                return "Элемент " + jailForAdding + " добавлен.";
+            } else {
+                return "Коллекция пуста.";
+            }
+        } else{
+            return "Элемент задан неверно.";
+        }
+    }
     public String add(Jail jailForAdding){
         if (jailForAdding != null) {
             if (!jailConcurrentStack.contains(jailForAdding)) {
@@ -68,7 +105,6 @@ public class ConcurrentCollectionManager extends CollectionManager {
             return "Элемент задан неверно.";
         }
     }
-    
     
     
     @Override
@@ -128,14 +164,18 @@ public class ConcurrentCollectionManager extends CollectionManager {
         }
     }
 
-    public String remove(Jail jailForRemoving) {
+    public String remove(Jail jailForRemoving, String login) throws SQLException {
         if (jailForRemoving == null) {
             return "Элемент для удаления задан неверно.";
         }
         try {
             if (jailConcurrentStack.contains(jailForRemoving)) {
-                jailConcurrentStack.stream().filter(t -> t.equals(jailForRemoving)).forEach(t -> jailConcurrentStack.remove(t));
-                return "Элемент " + jailForRemoving + " удален.";
+                CollectionWriter cw = new CollectionWriter(connectionDB.getConnection());
+                if (cw.checkOwner(jailForRemoving, login)) {
+                    cw.deleteJail(jailForRemoving, login);
+                    jailConcurrentStack.stream().filter(t -> t.equals(jailForRemoving)).forEach(t -> jailConcurrentStack.remove(t));
+                    return "Элемент " + jailForRemoving + " удален.";
+                } return "You aren't its owner!";
             } else {
                 return "Такого элемента в коллекции нет.";
             }

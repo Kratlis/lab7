@@ -1,5 +1,6 @@
 package work_with_collection;
 
+import ServerPart.DataBaseConnection;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonSyntaxException;
@@ -10,7 +11,10 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.lang.reflect.Type;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
 import java.text.SimpleDateFormat;
+import java.time.LocalDateTime;
 import java.util.Date;
 import java.util.Scanner;
 import java.util.Stack;
@@ -24,7 +28,6 @@ public class CollectionManager {
     private Stack<Jail> jailStack;
     Date initDate;
     FileManager fileWorker;
-
     /**
      *Конструктор в входными параметрами.
      * @param collectionFile - файл, из которого будет считываться коллекция.
@@ -51,7 +54,7 @@ public class CollectionManager {
      */
     CollectionManager() {
     }
-
+    
     /**
      * Метод добавляет в коллекцию элемент.
      * @param jailInString - элемент в формате json.
@@ -252,7 +255,7 @@ public class CollectionManager {
             newJail.setName("NoName");
         }
         if (newJail.getInitDate() == null){
-            newJail.setInitDate(new Date());
+            newJail.setInitDate(LocalDateTime.now());
         }
         return newJail;
     }
@@ -266,4 +269,16 @@ public class CollectionManager {
             return false;
         }
     }
+    
+//    private void InsertObject(Jail jail) throws SQLException {
+//        PreparedStatement ps = connectionDB.getConnection().prepareStatement("insert into cranes ()");
+//        String insCrane = "insert into cranes (condition, water, name, abscissa, ordinate)" +
+//                " values (?, ?, ?, ?, ?)";
+//
+//        String insStove = "insert into stoves (fire, name, abscissa, ordinate) values " +
+//                "(?, ?, ?, ?)";
+//        String insPoliceman = "insert into squads (name, abscissa, ordinate, armament, jail_code) " +
+//                "values(?, ?, ?, ?, ?)";
+//        jail.getCrane();
+//    }
 }

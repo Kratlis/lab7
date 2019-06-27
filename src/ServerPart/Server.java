@@ -1,4 +1,4 @@
-package Servlet;
+package ServerPart;
 
 import work_with_collection.ConcurrentCollectionManager;
 
@@ -10,24 +10,20 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketException;
 import java.nio.channels.ClosedByInterruptException;
+import java.sql.Connection;
+import java.sql.SQLException;
 import java.util.LinkedList;
 
 public class Server {
     private ConcurrentCollectionManager manager;
     private ServerSocket serverSocket;
-    private static int port = 8080;
+    private static int port = 8880;
     private static LinkedList<ServerOperator> serverList = new LinkedList<>(); // список всех нитей - экземпляров сервера, слушающих каждый своего клиента
-
-    private Server(int i, File file) throws FileNotFoundException {
-        manager = new ConcurrentCollectionManager(file);
-        port = i;
-    }
+    private Connection connection;
+    
     private Server(int i) {
         this();
         port = i;
-    }
-    private Server(File file) throws FileNotFoundException {
-        manager = new ConcurrentCollectionManager(file);
     }
     private Server() {
         manager = new ConcurrentCollectionManager();
@@ -42,43 +38,42 @@ public class Server {
         Runtime.getRuntime().addShutdownHook(new Thread(() -> System.out.println("Завершаем работу.")));
 
         Server server;
-        if (args.length > 1){
-            try{
-                server = new Server(Integer.parseInt(args[1]), new File(args[0]));
-            } catch (NumberFormatException e){
-                System.out.println("Номер порта задан неверно");
-                server = new Server(new File(args[0]));
-            }
-        } else
-        if (args.length == 1) {
-            try{
+            try {
                 server = new Server(Integer.parseInt(args[0]));
-            }catch (NumberFormatException e){
-                server = new Server(new File(args[0]));}
-        } else server = new Server();
-
+            } catch (NumberFormatException e) {
+                server = new Server();
+            }
 
         System.out.println("Попытка запустить сервер...");
-        try {
-            server.serverSocket = new ServerSocket();
-            server.serverSocket.bind(new InetSocketAddress(port));
-            System.out.println("Порт: "+server.serverSocket.getLocalPort());
-        } catch (IOException e) {
-            System.out.println("Не получилось создать ServerSocket.");
-            System.exit(-1);
-        }
-
-        System.out.println("Сервер запущен");
-        while (!server.serverSocket.isClosed()) {
-            Socket client = server.waitConnection();
-            if (client == null) {
-                break;
+        DataBaseConnection dataBaseConnection = new DataBaseConnection();
+        if (dataBaseConnection.connect()) {
+            server.manager.setConnectionDB(dataBaseConnection);
+            try {
+                server.manager = new CollectionReader(dataBaseConnection.getConnection()).createCollection(server.manager);
+            } catch (SQLException e) {
+                e.printStackTrace();
+                System.out.println("Не удалось считать коллекцию");
             }
-            ServerOperator serverOperator = new ServerOperator(client, server.manager);
-            serverList.add(serverOperator);
-            serverOperator.start();
+            try {
+                server.serverSocket = new ServerSocket();
+                server.serverSocket.bind(new InetSocketAddress(port));
+                System.out.println("Порт: " + server.serverSocket.getLocalPort());
+            } catch (IOException e) {
+                System.out.println("Не получилось создать ServerSocket.");
+                System.exit(-1);
+            }
+    
+            System.out.println("Сервер запущен");
+            while (!server.serverSocket.isClosed()) {
+                Socket client = server.waitConnection();
+                if (client == null) {
+                    break;
+                }
+                ServerOperator serverOperator = new ServerOperator(client, server.manager, dataBaseConnection);
+                serverOperator.start();
+            }
+            server.serverSocket.close();
         }
-        server.serverSocket.close();
     }
 
     private Socket waitConnection() {
@@ -94,7 +89,6 @@ public class Server {
             System.out.println("Сервер выключается");
             try {
                 serverSocket.close();
-//                serverList.forEach(ServerOperator::interrupt);
                 serverList.forEach(ServerOperator::interrupt);
             } catch (IOException ex) {
                 System.out.println("Не удалось закрыть сетевой канал.");
