@@ -1,6 +1,6 @@
 package ServerPart;
 
-import com.sun.deploy.association.RegisterFailedException;
+import story.EmptyJailException;
 import story.Jail;
 import work_with_collection.CommandReaderAndExecutor;
 import work_with_collection.ConcurrentCollectionManager;
@@ -13,7 +13,6 @@ import java.security.NoSuchAlgorithmException;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.LinkedList;
 import java.util.Stack;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -64,7 +63,7 @@ class ServerOperator extends Thread {
                 continue;
             }
             try {
-                sendMessage("Введите \"enter\", чтобы подключиться к базе данных. \n" +
+                sendMessage("Введите \"enter\", чтобы войти. \n" +
                        "Если вы еще не зарегистрированы, введите \"reg\"");
                 String message = readMessage();
                 if (message.equals("enter")) {
@@ -102,7 +101,7 @@ class ServerOperator extends Thread {
                             sendMessage(manager.info());
                             break;
                         case "import":
-                            sendMessage(manager.doImport(readStack()));
+                            sendMessage(manager.doImport(readStack(), login));
                             break;
                         case "insert":
                             sendMessage(manager.insert(readMessage(), readJail()));
@@ -157,22 +156,22 @@ class ServerOperator extends Thread {
                 System.out.println("Не удалось получить объект");
             } catch (SQLException e) {
                 e.printStackTrace();
-            } catch (RegisterFailedException ignored) {}
+            } catch (EmptyJailException ignored) {}
         }
     }
     
-    private void register() throws IOException, ClassNotFoundException, SQLException, RegisterFailedException {
+    private void register() throws IOException, ClassNotFoundException, SQLException, EmptyJailException {
         sendMessage("Введите логин");
         login = readMessage();
         if (existLogin(login)) {
             sendMessage("Логин занят");
-            throw new RegisterFailedException();
+            throw new EmptyJailException();
         }
         sendMessage("Введите адрес электронной почты");
         String email = readMessage();
         if (existMail(email)){
             sendMessage("Пользователь с такой почтой уже существует");
-            throw new RegisterFailedException();
+            throw new EmptyJailException();
         }
         String password = new JavaMail().registration(email);
         sendMessage("Пароль был отправлен Вам на почту. Введите его.");
@@ -182,7 +181,7 @@ class ServerOperator extends Thread {
             pswd = readMessage();
             if (!pswd.equals(password)){
                 sendMessage("Вы ввели неверный пароль. Регистрация отменена.");
-                throw new RegisterFailedException();
+                throw new EmptyJailException();
             }
         }
         insertUser(login, password, email);
@@ -246,7 +245,7 @@ class ServerOperator extends Thread {
         return false;
     }
     
-    private void enter() throws IOException, ClassNotFoundException, SQLException, RegisterFailedException {
+    private void enter() throws IOException, ClassNotFoundException, SQLException, EmptyJailException {
         sendMessage("Введите логин");
         login = readMessage();
         if (!checkLogin(login)) {
@@ -254,9 +253,9 @@ class ServerOperator extends Thread {
         }
         sendMessage("Введите пароль");
         String password = readMessage();
-        if (!checkPassword(login, password)){
+        if (!checkPassword(login, encryptThisString(password))){
             sendMessage("Пароль неверен");
-            throw new RegisterFailedException();
+            throw new EmptyJailException();
         }
         sendMessage("Добро пожаловать, "+login);
         System.out.println(login+" is here");

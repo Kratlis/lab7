@@ -16,6 +16,7 @@ import java.io.IOException;
 import java.lang.reflect.Type;
 import java.sql.SQLException;
 import java.text.SimpleDateFormat;
+import java.time.LocalDateTime;
 import java.util.Date;
 import java.util.Scanner;
 import java.util.Stack;
@@ -24,8 +25,8 @@ import java.util.stream.Collectors;
 
 public class ConcurrentCollectionManager extends CollectionManager {
     private ConcurrentLinkedDeque<Jail> jailConcurrentStack;
-    DataBaseConnection connectionDB;
-    CollectionWriter collectionWriter;
+    private DataBaseConnection connectionDB;
+    private CollectionWriter collectionWriter;
 
     /**
      *Конструктор в входными параметрами.
@@ -65,6 +66,9 @@ public class ConcurrentCollectionManager extends CollectionManager {
     public String add(Jail jailForAdding, String login){
         if (jailForAdding != null) {
             if (!jailConcurrentStack.contains(jailForAdding)) {
+                if (jailForAdding.getInitDate() == null){
+                    jailForAdding.setInitDate(LocalDateTime.now());
+                }
                 jailConcurrentStack.add(jailForAdding);
                 try {
                     collectionWriter.writeJail(jailForAdding, login);
@@ -72,7 +76,6 @@ public class ConcurrentCollectionManager extends CollectionManager {
                     return "Connection with DB is broken.";
                 }
                 if (jailConcurrentStack.size()>1) {
-                    sort();
                 }
             } else {
                 return "Элемент " + jailForAdding + " уже содержится в коллекции.";
@@ -86,6 +89,7 @@ public class ConcurrentCollectionManager extends CollectionManager {
             return "Элемент задан неверно.";
         }
     }
+    
     public String add(Jail jailForAdding){
         if (jailForAdding != null) {
             if (!jailConcurrentStack.contains(jailForAdding)) {
@@ -119,6 +123,7 @@ public class ConcurrentCollectionManager extends CollectionManager {
         if (jailConcurrentStack.isEmpty()){
             return "Коллекция пуста.";
         } else {
+            sort(); 
             return new GsonBuilder().setPrettyPrinting().create().
                     toJson(jailConcurrentStack);
         }
@@ -129,11 +134,10 @@ public class ConcurrentCollectionManager extends CollectionManager {
      * @param jailsForPushing - элементы коллекции, которые надо добавить в текущую коллекцию.
      * @see ConcurrentLinkedDeque
      */
-    public String doImport(Stack<Jail> jailsForPushing) {
+    public String doImport(Stack<Jail> jailsForPushing, String login) {
         if (jailsForPushing != null) {
             if (!jailsForPushing.isEmpty()) {
-                jailConcurrentStack.addAll(jailsForPushing);
-                sort();
+                jailsForPushing.stream().forEach(t -> add(t, login));
                 return "Элементы добавлены.";
             }
             return "Ничего не добавлено: импортируемая коллекция пуста.";
